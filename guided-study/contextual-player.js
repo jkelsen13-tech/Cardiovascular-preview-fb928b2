@@ -1,5 +1,6 @@
 /* User-initiated explanations. Reads page context; never owns a simulator.
-   No adapters, cue application, route changes, scroll/focus calls or model clock. */
+   No adapters, cue application, route changes or model clock. Focus stays within
+   the user-opened audio disclosure and always prevents page scrolling. */
 (function (host) {
   'use strict';
   const doc=host.document,home=doc.getElementById('home'),map=host.ContextualAudioContexts;
@@ -12,6 +13,11 @@
   home.insertBefore(card,home.firstChild);
   const el=name=>card.querySelector('[data-context-audio-'+name+']');
   const select=el('lesson'),play=card.querySelector('[data-context-audio-action=play]'),replay=card.querySelector('[data-context-audio-action=replay]'),seek=el('seek');
+  const dock=doc.createElement('aside');dock.id='contextualAudioDock';dock.hidden=true;dock.setAttribute('aria-label','Floating audio controls');
+  dock.innerHTML='<div class="ca-float-bar"><button type="button" class="ca-float-toggle" data-audio-dock-toggle aria-expanded="false" aria-controls="contextAudioDockPanel" aria-label="Choose audio explanation"><span data-audio-dock-title></span><small data-audio-dock-state></small><span class="ca-float-chevron" aria-hidden="true">⌃</span></button><button type="button" class="ca-float-play" data-audio-dock-play aria-label="Play explanation"><span aria-hidden="true" data-audio-dock-icon>▶</span></button></div><section id="contextAudioDockPanel" class="ca-float-panel" hidden aria-labelledby="contextAudioDockHeading"><div class="ca-float-heading"><h2 id="contextAudioDockHeading">Audio explanations</h2><button type="button" data-audio-dock-close aria-label="Close audio lesson selector">✕</button></div><p data-audio-dock-context></p><label>Related explanation<select data-audio-dock-lesson aria-label="Floating audio lesson"></select></label><p class="ca-float-note">Choosing another explanation loads it paused. You control the page.</p><p data-audio-dock-position></p><p class="ca-float-warning" data-audio-dock-warning hidden></p><p role="alert" data-audio-dock-error hidden></p></section>';
+  doc.body.append(dock);
+  const floating=name=>dock.querySelector('[data-audio-dock-'+name+']');
+  const floatToggle=floating('toggle'),floatPlay=floating('play'),floatSelect=floating('lesson'),floatPanel=doc.getElementById('contextAudioDockPanel');
   let context=null,current=null,ids=[],revision=0,pending=false,loading=false,error='',scheduled=false,disposed=false,manualPhase=null,priorHeartSelection='',clipUrl=null,controller=null;
   const listeners=[],observers=[],sectionObservers=new Map();
   const listen=(target,event,handler,options)=>{target.addEventListener(event,handler,options);listeners.push(()=>target.removeEventListener(event,handler,options));};
@@ -68,13 +74,23 @@
     el('continuing').hidden=!unrelated;
     text(el('continuing'),unrelated?'Current recording: '+current.title+'. Related choices now follow this section. Choose another explanation when you want to change audio.':'');
     text(el('status'),!current?'Choose a study-path topic or simulator section for related audio.':error?'Audio unavailable. The page controls still work.':loading?'Loading explanation…':pending?'Starting explanation…':playing?'Playing · '+current.title:audio.ended?'Explanation finished. Nothing plays automatically.':'Ready · '+current.title+' · paused');
+    const state=error?'Unavailable':loading?'Loading':pending?'Starting':playing?'Playing':audio.ended?'Finished':'Paused';
+    text(floating('title'),current?.title||'Audio explanation');text(floating('state'),state+(current?' · '+current.id:''));
+    floating('icon').textContent='';floating('icon').dataset.symbol=playing?'pause':error?'reload':'play';
+    floatPlay.disabled=play.disabled;floatPlay.setAttribute('aria-label',play.textContent+(current?' · '+current.id+' · '+current.title:''));
+    floatPlay.setAttribute('aria-pressed',String(playing));floatPlay.title=floatPlay.getAttribute('aria-label');
+    text(floating('context'),context?.label||'');text(floating('position'),clock(audio.currentTime)+' / '+clock(seek.max));
+    floating('warning').hidden=el('warning').hidden;text(floating('warning'),el('warning').textContent);
+    floating('error').hidden=!error;text(floating('error'),error);
   }
   function options(){
-    select.replaceChildren();
     const list=current&&!ids.includes(current.id)?[current.id,...ids]:ids;
-    if(!list.length){const o=doc.createElement('option');o.textContent='No matching recording for this section';o.value='';select.append(o);}
-    for(const id of list){const l=byId.get(id);if(!l)continue;const o=doc.createElement('option');o.value=id;o.textContent=id+' · '+l.title+(ids.includes(id)?'':' · current recording');select.append(o);}
-    select.disabled=!list.length;select.value=current?.id||'';
+    for(const target of [select,floatSelect]){
+      target.replaceChildren();
+      if(!list.length){const o=doc.createElement('option');o.textContent='No matching recording for this section';o.value='';target.append(o);}
+      for(const id of list){const l=byId.get(id);if(!l)continue;const o=doc.createElement('option');o.value=id;o.textContent=id+' · '+l.title+(ids.includes(id)?'':' · current recording');target.append(o);}
+      target.disabled=!list.length;target.value=current?.id||'';
+    }
   }
   function load(id){
     revision++;const token=revision;pending=false;loading=false;audio.pause();error='';current=byId.get(id)||null;
@@ -113,7 +129,8 @@
     const next=readContext();
     if(next?.key===context?.key&&next?.page===context?.page)return;
     const changedPage=next?.page!==context?.page;context=next;ids=[...new Set((next?.ids||[]).filter(id=>byId.has(id)))];
-    card.hidden=!next;text(el('context'),next?.label||'');
+    card.hidden=!next;dock.hidden=!next;doc.body.classList.toggle('contextual-audio-present',!!next);text(el('context'),next?.label||'');
+    if(changedPage)setExpanded(false);
     if(changedPage){manualPhase=null;load(ids[0]);}
     else if(audio.paused&&!pending&&(!current||!ids.includes(current.id)))load(ids[0]);
     else{options();render();}
@@ -125,14 +142,25 @@
     let promise;try{promise=audio.play();}catch(e){promise=Promise.reject(e);}
     Promise.resolve(promise).then(()=>{if(token!==revision||disposed)return;pending=false;render();},e=>{if(token!==revision||disposed)return;pending=false;error='Could not play this explanation. Tap Play to retry. '+e.message;render();});
   }
-  listen(play,'click',()=>{if(error){load(current?.id);return;}if(!audio.paused){pending=false;audio.pause();render();}else start();});
+  function togglePlayback(){if(error){load(current?.id);return;}if(!audio.paused){pending=false;audio.pause();render();}else start();}
+  function setExpanded(open,restoreFocus=false){
+    floatPanel.hidden=!open;floatToggle.setAttribute('aria-expanded',String(open));
+    if(open&&!floatSelect.disabled)floatSelect.focus({preventScroll:true});
+    else if(restoreFocus)floatToggle.focus({preventScroll:true});
+  }
+  listen(play,'click',togglePlayback);listen(floatPlay,'click',togglePlayback);
+  listen(floatToggle,'click',()=>setExpanded(floatPanel.hidden));
+  listen(floating('close'),'click',()=>setExpanded(false,true));
+  listen(dock,'keydown',event=>{if(event.key==='Escape'&&!floatPanel.hidden){event.preventDefault();event.stopPropagation();setExpanded(false,true);}});
+  listen(doc,'pointerdown',event=>{if(!floatPanel.hidden&&!dock.contains(event.target))setExpanded(false);});
+  listen(doc,'fullscreenchange',()=>{const target=doc.fullscreenElement||doc.body;target.append(dock);dock.classList.toggle('ca-in-fullscreen',!!doc.fullscreenElement);});
   listen(replay,'click',()=>{if(!current)return;try{audio.currentTime=0;}catch(e){error='Audio is still loading. Try Replay again.';render();return;}start();});
-  listen(select,'change',()=>load(select.value));
+  for(const target of [select,floatSelect])listen(target,'change',()=>load(target.value));
   listen(seek,'input',()=>{if(!current||audio.readyState<1)return;try{audio.currentTime=Math.max(0,Math.min(Number(seek.value),audio.duration));error='';}catch(e){error='Could not seek this explanation.';}render();});
   for(const event of ['loadedmetadata','durationchange','timeupdate','play','playing','pause','ended','seeked'])listen(audio,event,render);
   listen(audio,'error',()=>{if(current&&audio.error&&!loading){pending=false;error='The explanation could not be loaded. Use Reload to try again.';render();}});
   function manualChange(event){
-    if(card.contains(event.target))return;
+    if(card.contains(event.target)||dock.contains(event.target))return;
     if(event.type==='click'){
       const phase=event.target.closest('[data-h3-phase]');
       if(phase)manualPhase=phase.dataset.h3Phase;
@@ -147,5 +175,5 @@
     observer.observe(target,{attributes:true,attributeFilter:['class','hidden'],attributeOldValue:true});observers.push(observer);
   }
   refresh();
-  host.ContextualAudio={audio,refresh,inspect:()=>({context:context&&{page:context.page,key:context.key,label:context.label},lessonId:current?.id||null,availableIds:ids.slice(),playing:!audio.paused&&!audio.ended,time:audio.currentTime,pending,loading,error}),dispose(){disposed=true;revision++;controller?.abort();audio.pause();listeners.forEach(fn=>fn());observers.forEach(o=>o.disconnect());sectionObservers.forEach(o=>o.observer.disconnect());sectionObservers.clear();audio.removeAttribute('src');audio.load();if(clipUrl)host.URL.revokeObjectURL(clipUrl);card.remove();}};
+  host.ContextualAudio={audio,refresh,inspect:()=>({context:context&&{page:context.page,key:context.key,label:context.label},lessonId:current?.id||null,availableIds:ids.slice(),playing:!audio.paused&&!audio.ended,time:audio.currentTime,pending,loading,error}),dispose(){disposed=true;revision++;controller?.abort();audio.pause();listeners.forEach(fn=>fn());observers.forEach(o=>o.disconnect());sectionObservers.forEach(o=>o.observer.disconnect());sectionObservers.clear();audio.removeAttribute('src');audio.load();if(clipUrl)host.URL.revokeObjectURL(clipUrl);card.remove();dock.remove();doc.body.classList.remove('contextual-audio-present');}};
 }(window));

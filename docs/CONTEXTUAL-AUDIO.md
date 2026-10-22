@@ -1,6 +1,6 @@
 # Contextual audio candidate, 2026-10-22
 
-This private candidate implements the owner's corrected interaction requirement: explanations are available for the page or section the learner opens, and the learner chooses when to listen. It starts from recovery commit `fb928b2957a05c6ffe88e4c0a23a87abf2831a0f` (tree `5581172aa0c3b477ec5f0c26c12c6f3e9c48086c`). It has not been published or deployed.
+This candidate implements the owner's corrected interaction requirement: explanations are available for the page or section the learner opens, and the learner chooses when to listen. It starts from recovery commit `fb928b2957a05c6ffe88e4c0a23a87abf2831a0f` (tree `5581172aa0c3b477ec5f0c26c12c6f3e9c48086c`). Publication is limited to the separate owner-authorized preview; release commits and hosted checks are recorded in the cloud publication report.
 
 ## Interaction contract
 
@@ -11,6 +11,14 @@ This private candidate implements the owner's corrected interaction requirement:
 - Explicit navigation to a different page stops the previous recording and prepares the new page's first related explanation, paused. Leaving supported pages stops and unloads it. Nothing plays next automatically.
 - Simulator ticks do not rotate the audio choices. An explicitly selected heart phase can determine choices; an automatically advancing phase cannot.
 - No Guided/Explore takeover, Return to Guided control, automated-tour fallback or audio-owned saved simulator state is loaded. Existing historical storage is ignored and left untouched. Native manual simulator lessons remain native user controls.
+
+## Floating controls
+
+A 56px circular Play/Pause button stays fixed at the viewport's bottom-right on supported pages. The adjacent disclosure shows the current recording and Playing/Paused/Loading/Finished state, and opens a related-lesson selector. It uses the existing audio element and the same playback/selection handlers as the inline player: there is no second stream. Selecting another recording loads it paused and synchronizes both selectors. Opening or closing the panel never seeks, starts, stops or replaces audio.
+
+The disclosure and buttons use native keyboard behavior (Enter/Space); Escape or the close button closes the panel and restores focus to its trigger without scrolling. Clicking outside closes it without taking focus from the page. Touch targets are at least 44px. The panel fits narrow/landscape viewports, scrolls internally if needed, and respects mobile safe-area insets. The compact dock leaves pointer events outside its actual controls available to the page. A bottom spacer lets final page controls scroll above it. The expanded selector is temporary and can be closed to reveal the page below.
+
+In a user-opened native fullscreen view, only the dock UI moves into the fullscreen container; the audio element remains in the inline player. Extra lower spacing clears the native expanded-view exit. Exiting fullscreen returns the dock to the document body. These operations do not call simulator adapters or initiate fullscreen themselves. Leaving a supported page hides the dock, closes its disclosure and applies the existing paused page-navigation policy. Disposal removes both control surfaces and the spacer.
 
 ## Content mapping
 
@@ -61,6 +69,7 @@ Run from the repository root with an existing local HTTP preview and preinstalle
 node tools/contextual-audio/verify.cjs
 CARDIO_BASE_URL=http://127.0.0.1:8881/ python tools/contextual-audio/browser.py
 CARDIO_BASE_URL=http://127.0.0.1:8881/ python tools/contextual-audio/lifecycle-browser.py
+CARDIO_BASE_URL=http://127.0.0.1:8882/ python tools/contextual-audio/floating-browser.py
 node tools/heart-v3/model.cjs
 node tools/simulators/mechanics.cjs
 ```
@@ -75,10 +84,12 @@ The separate existing lead-placement verifier could not start its bundled Playwr
 
 Screenshots and media-element events establish cloud browser behavior only. This environment still has no actual sound-output monitor or display-presentation capture endpoint. Physical iPad/Safari listening, sound/display synchronization, full anatomical/clinical acceptance and actual Cursor review remain pending.
 
+The floating-control regression checks fixed scroll position, paused/playing position preservation on disclosure open/close, native keyboard focus, two-way inline synchronization, explicit paused lesson switching without route/model/camera changes, one playing audio element, native expanded-view access, and layouts at 320×640, 390×844, 768×1024, 1024×768 and 568×320. A lesson change can change inline warning/transcript height above the viewport; the browser adjusts its scroll offset through normal anchoring. The regression checks the visible scene position and native state rather than misclassifying that compensation as audio-driven navigation.
+
 ## Private handoff and next step
 
-Keep this branch private until the owner reviews the corrected behavior. The original recovery branch, old public preview history, original main and original live site remain intact. This pass does not push, deploy, change settings or create new credentials.
+The original recovery branch, old public preview history, original main and original live site remain intact. Publication authorization applies only to the separate preview. No settings changes or new credentials are part of the work.
 
-After review and explicit publication authorization, update only the existing separate `jkelsen13-tech/Cardiovascular-preview-fb928b2` preview branch. Preserve its deliberate exclusion of the nine original workflow definitions so publishing the candidate cannot trigger unrelated original CI/deployment destinations. Verify hosted entry pages, contextual scripts and original audio hashes before iPad handoff. The cloud loopback URL is not a shareable iPad URL.
+Update only the existing separate `jkelsen13-tech/Cardiovascular-preview-fb928b2` preview branch under the owner's explicit authorization. Preserve its deliberate exclusion of the nine original workflow definitions so publishing the candidate cannot trigger unrelated original CI/deployment destinations. Verify hosted entry pages, contextual scripts and original audio hashes before iPad handoff. The cloud loopback URL is not a shareable iPad URL.
 
 Suggested owner acceptance: open the heart simulator and play M02.01; change the chamber/camera and run/pause the heart while audio continues; manually choose ejection and confirm related M03.05 is offered without automatic view changes. Open Respiratory Simulator v2, select diaphragm and play M05.06; operate breathing controls yourself. Open ASPT circulation, play M02.08, then select disease and confirm M14 choices appear while current audio continues. Selecting another recording or opening another page should leave the new recording paused. Check Replay, seek, transcript and audible output on the physical iPad.

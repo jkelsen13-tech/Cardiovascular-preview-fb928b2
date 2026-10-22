@@ -17,7 +17,8 @@ for(const clip of inventory.clips){
 assert.deepEqual(read('index.html'),read('cmt-quiz.html'),'Both entry pages use the same contextual experience');
 for(const old of ['session.js','player.js','boot.js','explanation.js'])assert(!html.includes('src="guided-study/'+old+'"'),'Old tour engine not loaded: '+old);
 const player=read('guided-study/contextual-player.js').toString();
-assert(!/scrollIntoView|scrollTo|\.focus\(|requestAnimationFrame|setInterval|localStorage|GuidedStudySession|\.guided\b/.test(player),'No view ownership, simulator adapters, persistent loop or storage migration');
+assert(!/scrollIntoView|scrollTo|requestAnimationFrame|setInterval|localStorage|GuidedStudySession|\.guided\b/.test(player),'No view ownership, simulator adapters, persistent loop or storage migration');
+for(const match of player.matchAll(/(\w+)\.focus\(([^)]*)\)/g))assert(['floatToggle','floatSelect'].includes(match[1])&&match[2]==='{preventScroll:true}','Focus only within explicitly opened audio controls, without scrolling');
 for(const match of player.matchAll(/(?:host\.)?(HeartV3Study|CardiorespiratoryStudy|LeadPlacementLab|EcgStudy)\.(\w+)\(/g))assert(['getState','inspectBreathing'].includes(match[2]),'Only read-only model calls: '+match[0]);
 for(const [method,input] of [['heart',{selected:'lv',route:null}],['lungs',{selected:'diaphragm',view:'whole'}],['lead',{selected:'v1',tab:'guided'}]]){
  const before=JSON.stringify(input),output=contexts[method](input);assert(output.length);assert.equal(JSON.stringify(input),before,'Context lookup is read-only');for(const id of output)assert(ids.has(id));
