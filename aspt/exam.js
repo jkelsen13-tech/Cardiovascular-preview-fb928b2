@@ -1,0 +1,82 @@
+/* ASPT-specific study layer; existing quiz and scoring engine retained. No persistent storage. */
+const ASPT = (() => {
+  const D=ASPT_DATA, root=document.createElement('section');
+  root.id='asptHome'; root.className='hidden aspt';
+  document.getElementById('home').appendChild(root);
+  const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const lesson=id=>D.lessons.find(l=>l.id===id);
+  const source=s=>s.map(([c,p])=>'Chapter '+String(c).padStart(2,'0')+', pp. '+p).join('; ');
+  const button=(label,action,id='')=>'<button type="button" data-action="'+action+'"'+(id?' data-id="'+escape(id)+'"':'')+'>'+escape(label)+'</button>';
+  const linkLesson=id=>lesson(id)?button(lesson(id).title,'lesson',id):button('Exam-Day Requirements','tab','exam-day');
+  function section19Panel(){
+    const cards=(D.section19Flashcards||[]).map((card,i)=>'<details class="s19-card"><summary><span>Card '+(i+1)+'</span>'+escape(card.front)+'</summary><p>'+escape(card.back)+'</p><small>'+escape(card.sourceRefs.join(' · '))+'</small></details>').join('');
+    return '<section class="s19-panel" aria-labelledby="s19PracticeTitle"><p class="aspt-kicker">Section 19 exam practice</p><h4 id="s19PracticeTitle">Rhythm discrimination bank</h4><p>Normal attempts draw 24 category- and concept-balanced questions, primarily Levels 2–4. Answer order and safe wording variants are randomized.</p><div class="aspt-links">'+button('Start Section 19 test','practice','rhythms')+button('🔥 HARD MODE','practice-hard','rhythms')+button('Open source ECG trainer','ecg')+'</div><details class="s19-deck"><summary>Study '+D.section19Flashcards.length+' Section 19 comparison flashcards</summary><div class="s19-card-grid">'+cards+'</div></details></section>';
+  }
+  let tab='path', current='foundation', fromExam=false;
+  const returns=['quiz','results'].map(id=>{
+    const b=document.createElement('button'); b.type='button';b.className='btn secondary hidden aspt-return';
+    b.textContent='← Return to ASPT exam study';b.onclick=()=>open();document.getElementById(id).prepend(b);return b;
+  });
+  const oldHome=goHome;
+  goHome=function(){oldHome();root.classList.add('hidden');document.getElementById('home').classList.remove('aspt-active');fromExam=false;returns.forEach(b=>b.classList.add('hidden'));};
+  const homeButton=document.createElement('button');homeButton.className='btn';homeButton.type='button';
+  homeButton.id='asptLaunch';homeButton.textContent='ASPT National EKG Exam';
+  const sm=document.createElement('small');sm.textContent='Retake not rescheduled • guide checklist, 91 terms and original practice';homeButton.appendChild(sm);
+  homeButton.onclick=()=>open();document.getElementById('homeMenu').insertBefore(homeButton,document.getElementById('homeMenu').children[1]);
+
+  function open(){goHome();if(typeof khHideAll==='function')khHideAll();hide('homeMenu');show('home');show('asptHome');document.getElementById('home').classList.add('aspt-active');render();window.scrollTo(0,0);}
+  function figure(id){
+    const v=D.images[id]||StudyTeaching.visuals[id];if(!v)return '';
+    const citation=v.source||('Chapter '+v.chapter+', page '+v.page);
+    return '<figure><button class="aspt-image-button" type="button" data-action="zoom" data-id="'+escape(id)+'" aria-label="Enlarge '+escape(v.title)+'"><img loading="lazy" src="'+escape(v.src)+'" alt="'+escape(v.title)+'" width="'+v.width+'" height="'+v.height+'"></button><figcaption><strong>'+escape(citation)+'</strong><br>'+escape(D.visualCues?.[id]||v.cue)+'<br><small>Select the image to enlarge.</small></figcaption></figure>';
+  }
+  function adminBox(){return '<aside class="aspt-notice"><h3>Your retake status</h3><p><strong>100 multiple-choice questions · no separate essay/free response · not rescheduled</strong></p><p>The course is passed, instructor documentation is on file, and the prior exam was attempted. No repeat mounted-EKG requirement is imposed for this retake. There is no invented deadline or timer here.</p><details><summary>Generic guide administration, kept separate</summary><p>The January 2026 guide pp. 2–3 contains initial-exam mounted-EKG and timing language. Those generic instructions are preserved as source notes; they do not override your confirmed retake status.</p></details><p>'+button('Review source notes','tab','exam-day')+'</p></aside>';}
+
+  function lessonView(l){
+    const extraKeys=l.id==='anatomy'?['anatomy','ventricle','orientation']:l.id==='placement'?['placement']:[];
+    return '<article><p class="aspt-kicker">'+escape(l.domain||'Exam study')+'</p><h3>'+escape(l.title)+'</h3><div class="aspt-requirement"><strong>ASPT EXAM REQUIREMENT</strong><p>'+escape(l.requirement)+'</p><small>Guide pp. '+l.guide.join(', ')+'</small></div><div class="aspt-foundation"><h4>PREREQUISITE / FOUNDATION</h4>'+(l.prerequisites.length?'<p>Review these concepts first:</p><div class="aspt-links">'+l.prerequisites.map(linkLesson).join('')+'</div>':'<p>This is a starting foundation. Learn these basic relationships before the later lessons.</p>')+'</div><h4>ADDITIONAL EXPLANATION FROM CLASS SLIDES</h4><p class="aspt-source">'+escape(source(l.sources))+'</p>'+l.body.map((p,i)=>'<p>'+escape(p)+'</p><p class="aspt-source aspt-point-source">'+escape(l.bodyRefs[i])+'</p>').join('')+(extraKeys.length?'<p class="aspt-source">References for required guide labels/placement only: '+extraKeys.map(k=>'<a href="'+D.extras[k].url+'" target="_blank" rel="noopener">'+escape(D.extras[k].title)+'</a>').join(' · ')+'</p>':'')+(l.gap?'<aside class="aspt-gap"><strong>ASP T GUIDE TOPIC NEEDING ADDITIONAL EXPLANATION</strong><p>'+escape(l.gap)+'</p></aside>':'')+(l.visuals||[]).map(figure).join('')+(l.id==='anatomy'?heartTable():'')+(l.id==='rhythms'?section19Panel():'<div class="aspt-links">'+button('Practice this topic','practice',l.id)+'</div>')+'</article>';
+  }
+  function heartTable(){return '<h4>All labels on the guide heart diagram</h4><p>For each label: locate it, state its function, then name the next structure in the blood-flow route when applicable. Compare paired chambers, valves and septa.</p><dl>'+D.heartLabels.map(([name,meaning,missing])=>'<div><dt>'+escape(name)+'</dt><dd>'+escape(meaning)+(missing?' <strong>Supplemental anatomy explanation; missing from class text.</strong>':'')+'</dd></div>').join('')+'</dl>';}
+  function render(){
+    root.innerHTML='<header><p class="aspt-kicker">Your ASPT EKG certification retake</p><h2>ASPT National EKG Exam</h2><p>The 2026 ASPT guide sets the scope. Explanations stay at the basic class level, with source pages beside each point. These are practice resources, not official exam questions.</p>'+button('← All study modes','home')+'</header><nav aria-label="ASPT study sections">'+[['path','Study path'],['terms','91 terms'],['diagrams','Diagram lab'],['coverage','Coverage checklist'],['review','Final review'],['practice','Practice'],['exam-day','Retake status / guide notes']].map(([id,n])=>'<button type="button" data-action="tab" data-id="'+id+'" aria-pressed="'+(tab===id)+'">'+n+'</button>').join('')+'</nav><div id="asptContent"></div>';
+    const box=root.querySelector('#asptContent');
+    if(tab==='path')box.innerHTML=adminBox()+'<h3>Study path</h3><p>'+escape(D.scopeNote)+'</p><p>Start with foundations, then follow the guide domains. Each lesson separates the requirement, prerequisite links and class explanation.</p><div class="aspt-layout"><div class="aspt-lesson-list">'+D.lessons.map((l,i)=>'<button type="button" data-action="lesson" data-id="'+l.id+'" aria-pressed="'+(current===l.id)+'">'+(i+1)+'. '+escape(l.title)+'</button>').join('')+'</div><div id="asptLesson">'+lessonView(lesson(current))+'</div></div>';
+    if(tab==='terms'){box.innerHTML='<h3>Terminology Used on National Testing</h3><p>All 91 numbered entries are retained, including duplicates and the guide’s unusual spellings. Start with the plain-language meaning, then use the distinction to reason through choices.</p><label>Search terms <input id="asptTermSearch" type="search" placeholder="Term, definition or number"></label><p id="asptTermCount" role="status"></p><div id="asptTerms"></div>';terms('');}
+    if(tab==='coverage'){box.innerHTML='<h3>ASPT coverage audit</h3><p>These statuses describe source coverage, not your mastery or a guaranteed exam result. “Missing from class materials” items remain included from the ASPT guide or a clearly labeled supplement. Administrative requirements are absent from academic slides but fully listed here.</p><label>Search checklist <input id="asptAuditSearch" type="search"></label><label>Status <select id="asptAuditStatus"><option>All statuses</option><option>Covered completely</option><option>Covered but needs reinforcement</option><option>Missing from class materials</option></select></label><p id="asptAuditCount" role="status"></p><div id="asptAudit"></div><details><summary>Source inventory: all 13 slideshows</summary><ul>'+D.chapters.map(c=>'<li>'+escape(c.file)+' — '+c.pages+' pages reviewed</li>').join('')+'</ul><p>Chapter 12 supplies practice tracings; unreviewed examples are not promoted as verified strips. Chapter 13 summarizes the course. The guide supplies the specific exam scope, not the relative length of a slideshow.</p></details>';audit();}
+    if(tab==='diagrams')box.innerHTML='<h3>Diagram lab</h3><p>Cover a label, identify the structure or wave, explain its function, and answer “what happens next?” Open the related lesson for the complete explanation.</p>'+Object.entries(D.images).map(([id,v])=>'<article><h4>'+escape(v.title)+'</h4>'+figure(id)+linkLesson(v.lesson)+(id==='g01'?heartTable():'')+'</article>').join('')+'<h4>More class illustrations</h4><p>The lessons include the class conduction map, blood flow, respiratory pathway and anatomical landmarks, with prompts explaining what to identify.</p>'+linkLesson('conduction')+linkLesson('circulation')+linkLesson('airway');
+    if(tab==='review')box.innerHTML='<h3>Final high-yield exam review</h3><p>Guide scope with class reference values. Apply values only when the recording settings and visible evidence support them.</p>'+D.highYield.map(g=>'<article><h4>'+escape(g.title)+'</h4><ul>'+g.items.map(s=>'<li>'+escape(s)+'</li>').join('')+'</ul></article>').join('')+button('Practice the exam focus set','practice','all');
+    if(tab==='practice')box.innerHTML='<h3>Exam-focused practice</h3><p>Use the existing quiz engine with immediate scoring and explanations after every answer. The 24-question focus set covers placements, measurements, guide-wave identification and exam requirements. Section 19 uses its own balanced, tiered rhythm bank; practice length does not represent an official exam question count.</p>'+button('Start 24-question focus set','practice','all')+'<section class="s19-panel"><h4>Section 19 · ECG Rhythms</h4><p>Normal mode is primarily Levels 2–4. Hard Mode favors Levels 3–4, close rhythm comparisons, and multi-feature reasoning without images.</p><div class="aspt-links">'+button('Start Section 19 test','practice','rhythms')+button('🔥 HARD MODE','practice-hard','rhythms')+'</div></section><div class="aspt-lesson-list">'+D.lessons.filter(l=>l.id!=='rhythms').map(l=>button(l.title,'practice',l.id)).join('')+'</div>'+button('Source ECG strip trainer','ecg');
+    if(tab==='exam-day')box.innerHTML=adminBox()+adminBox()+'<h3>Complete guide instructions</h3>'+D.admin.map(a=>'<article><h4>'+escape(a.title)+'</h4><p>'+escape(a.text)+'</p><small>ASPT guide, page '+a.page+'</small></article>').join('');
+  }
+  function terms(query){const rows=D.terms.filter(t=>(t.id+' '+t.term+' '+t.simple+' '+t.clinical).toLowerCase().includes(query.toLowerCase()));root.querySelector('#asptTermCount').textContent=rows.length+' of 91 terms';root.querySelector('#asptTerms').innerHTML=rows.map(t=>'<article class="aspt-term"><h4>'+t.id+'. '+escape(t.term)+'</h4><strong>In simple language</strong><p>'+escape(t.simple)+'</p><strong>For multiple-choice questions</strong><p>'+escape(t.clinical)+'</p><small>ASPT EXAM REQUIREMENT · guide p. '+t.page+' · '+escape(t.status)+'</small><p class="aspt-source">Class explanation: '+escape(source(t.sources))+'</p>'+linkLesson(t.lesson)+'</article>').join('');}
+  function audit(){const q=root.querySelector('#asptAuditSearch').value.toLowerCase(),status=root.querySelector('#asptAuditStatus').value;const rows=D.coverage.filter(r=>(status==='All statuses'||r.status===status)&&(r.id+' '+r.label+' '+r.group+' '+r.note).toLowerCase().includes(q));root.querySelector('#asptAuditCount').textContent=rows.length+' of '+D.coverage.length+' checklist items';root.querySelector('#asptAudit').innerHTML=rows.map(r=>'<article class="aspt-audit-row"><strong>'+escape(r.id+' · '+r.label)+'</strong><p class="aspt-status">'+escape(r.status)+'</p><p>'+escape(r.note)+'</p><small>'+escape(r.group)+' · ASPT guide p. '+r.page+'</small><div>'+linkLesson(r.lesson)+(r.also||[]).map(linkLesson).join('')+'</div></article>').join('');}
+  function section19Pick(hard=false){
+    const limit=24, used=new Set(), usedGroups=new Set(), picked=[];
+    const pool=shuffle((D.section19Questions||[]).filter(q=>!hard||q.level>=3).map(q=>({...q})));
+    const group=q=>q.attemptGroup||q.concept||q.id;
+    const take=(q,allowGroupRepeat=false)=>{if(!q||used.has(q.id)||picked.length>=limit||(!allowGroupRepeat&&usedGroups.has(group(q))))return false;used.add(q.id);usedGroups.add(group(q));picked.push(q);return true;};
+    const categories=shuffle([...new Set(pool.map(q=>q.category))]);
+    while(picked.length<limit){
+      let moved=false;
+      for(const category of shuffle(categories.slice())){
+        const q=pool.find(x=>x.category===category&&!used.has(x.id)&&!usedGroups.has(group(x)));
+        if(take(q))moved=true;
+        if(picked.length>=limit)break;
+      }
+      if(!moved)break;
+    }
+    for(const q of pool){if(picked.length>=limit)break;take(q);}
+    for(const q of pool){if(picked.length>=limit)break;take(q,true);}
+    return shuffle(picked).map(q=>{
+      const wordings=[q.q,...(q.variants||[])];
+      return {...q,_id:q.id,asptFocused:true,q:wordings[Math.floor(Math.random()*wordings.length)]};
+    });
+  }
+  function practice(id,hard=false){const l=lesson(id);const qs=id==='all'?D.questions.slice():id==='rhythms'?section19Pick(hard):[...D.questions.filter(q=>q.lesson===id),...(l?.bank||[]).map(i=>{const q=BANK[i];return q&&{...q,_id:'aspt-class-'+i,asptFocused:true,e:D.practiceExplanations?.[i]||q.e,studyCue:D.visualCues?.[q.studyRef],...D.practiceOverrides?.[i]};}).filter(q=>q&&q.o)];if(!qs.length)return;hide('asptHome');fromExam=true;returns.forEach(b=>b.classList.remove('hidden'));launch(shuffle(qs.slice()),'ASPT · '+(l?l.title:'Exam focus')+(hard?' · HARD MODE':''));}
+  function zoom(id){const v=D.images[id]||StudyTeaching.visuals[id];ImageViewer.open(v.src,v.title,{id:'aspt-image-dialog',className:'aspt-zoom'});}
+  root.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const id=b.dataset.id;switch(b.dataset.action){case'home':goHome();break;case'tab':tab=id;render();break;case'lesson':tab='path';current=id;render();root.querySelector('#asptLesson').scrollIntoView({block:'start'});break;case'practice':practice(id);break;case'practice-hard':practice(id,true);break;case'zoom':zoom(id);break;case'retry':{const f=b.closest('figure'),im=f.querySelector('img');b.parentElement.remove();im.src=im.getAttribute('src');break;}case'ecg':goHome();showEcg();break;}});
+  root.addEventListener('error',e=>{if(e.target.tagName!=='IMG')return;const f=e.target.closest('figure');if(!f||f.querySelector('.aspt-image-error'))return;const msg=document.createElement('div');msg.className='aspt-image-error';msg.setAttribute('role','status');msg.innerHTML='<p>Image could not load. The source and explanation remain below.</p>'+button('Retry image','retry');f.appendChild(msg);},true);
+  root.addEventListener('input',e=>{if(e.target.id==='asptTermSearch')terms(e.target.value);if(e.target.id==='asptAuditSearch')audit();});
+  root.addEventListener('change',e=>{if(e.target.id==='asptAuditStatus')audit();});
+  return {open,practice,data:D,openLesson(id){open();if(lesson(id)){tab='path';current=id;render();root.querySelector('#asptLesson')?.scrollIntoView({block:'start'});}}};
+})();
