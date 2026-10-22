@@ -1,3 +1,13 @@
+# Contextual audio candidate — owner correction, 2026-10-22
+
+The current `index.html` and `cmt-quiz.html` use **Audio explanation** on the page the learner opens. The recordings do not drive any scene, camera, route, anatomy selection, physiological phase or simulator clock. Existing manual simulator controls remain independent while narration plays. Nothing autoplays.
+
+The player reads the current heart/lung/lead/ECG page or ASPT study-path topic and offers related recordings. Opening another page stops the old recording and prepares a related explanation, paused. Moving within a page refreshes the available choices while any current recording continues; choosing another recording explicitly loads it paused. Play/Pause, Replay, seek and exact transcript/source access are audio-only. Replay starts the selected recording from its beginning. No automatic next recording, scroll, highlight or saved Guided/Explore takeover is used. The old guided storage key is left untouched and ignored.
+
+See `docs/CONTEXTUAL-AUDIO.md` for mappings, compatibility qualifications, tests and deployment limits. The material below describes the **preserved historical automated-tour implementation**; its engine and supplemental-scene fallback are no longer loaded by either normal entry page. Original files/tests remain for recovery and historical comparison, not as a runtime fallback.
+
+---
+
 # Private guided simulator lessons
 
 This private candidate registers all 111 owner-approved audio sections (M01–M14), 725 scene cues and 3,567.383277 seconds (59m27s) of unchanged local MP3s. All narration assets are present; unsupported visual concepts remain explicitly supplemental rather than pretending to have model bindings. This inventory describes implementation, not final listening, anatomy or device acceptance. Each asset's Library identity, source hash, exact text, measured anchors and qualifications accompany its module in `assets/`.

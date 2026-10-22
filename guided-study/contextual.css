@@ -1,0 +1,24 @@
+#contextualAudio[hidden]{display:none!important}
+#contextualAudio{box-sizing:border-box;width:min(100%,780px);margin:12px auto 20px;padding:16px;border:1px solid #c8d5e7;border-radius:12px;background:#f7faff;color:#19314d;font:15px/1.5 system-ui,sans-serif;overflow-wrap:anywhere}
+#contextualAudio *{box-sizing:border-box}
+#contextualAudio h2{margin:0 0 3px;font-size:1.1rem;color:inherit}
+#contextualAudio p{margin:5px 0 10px;color:inherit}
+#contextualAudio .ca-context{font-weight:650}
+#contextualAudio label{display:block;font-weight:600}
+#contextualAudio select,#contextualAudio button{min-height:44px;font:inherit;border:1px solid #8ca6c7;border-radius:8px}
+#contextualAudio select{width:100%;padding:8px;background:white;color:#19314d;margin:5px 0 10px}
+#contextualAudio button{padding:8px 16px;background:white;color:#19314d;cursor:pointer}
+#contextualAudio [data-context-audio-action=play]{background:#1d559b;color:white;border-color:#1d559b;min-width:142px}
+#contextualAudio button:disabled{opacity:.55;cursor:default}
+#contextualAudio .ca-controls{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#contextualAudio .ca-position{display:flex;gap:12px;align-items:center}
+#contextualAudio input[type=range]{min-width:0;flex:1;width:100%;min-height:44px;accent-color:#1d559b}
+#contextualAudio output{white-space:nowrap;font-variant-numeric:tabular-nums}
+#contextualAudio details{border-top:1px solid #d4dfed;margin-top:10px;padding-top:10px}
+#contextualAudio summary{cursor:pointer;min-height:36px;font-weight:600}
+#contextualAudio .ca-transcript{white-space:pre-wrap;margin-top:10px;max-height:260px;overflow:auto;font-weight:400}
+#contextualAudio .ca-note{font-size:.88rem}
+#contextualAudio .ca-warning{border-left:3px solid #a56c20;padding-left:9px}
+#contextualAudio [role=alert]{color:#942c24}
+#contextualAudio :focus-visible{outline:3px solid #9b5e12;outline-offset:3px}
+@media(max-width:520px){#contextualAudio{padding:12px;margin:8px 0 14px}#contextualAudio .ca-position{display:block}#contextualAudio output{display:block}#contextualAudio .ca-controls button{flex:1}}
