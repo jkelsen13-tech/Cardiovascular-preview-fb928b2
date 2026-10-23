@@ -58,3 +58,9 @@
 .sim-breath-viewport:not(:fullscreen) .sim-breath-transport{display:none}
 .course-capnogram text{font-size:24px}
 .h3-course-view select{max-width:100%}
+
+@media(max-width:480px){
+  .sim-breath-journey-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sim-breath-journey-toolbar strong{grid-column:1/-1;grid-row:1;min-width:0}
+  .sim-breath-journey-toolbar button{width:100%}
+}
