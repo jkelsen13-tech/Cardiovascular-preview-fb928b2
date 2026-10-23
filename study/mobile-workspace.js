@@ -37,9 +37,9 @@
     const shell=root?.querySelector('.h3-teaching-shell'),grid=root?.querySelector('.h3-teaching-grid');if(!shell||!grid)return;
     const s=session('heart',shell);if(!s)return;mark(s,root,'ml-heart');
     const organ=root.querySelector('.h3-organ-column'),stage=root.querySelector('[data-h3-stage]'),transport=root.querySelector('.h3-transport');
-    const options=disclosure(s,shell,'View, layers and chamber selection');
+    const options=disclosure(s,shell,'View and anatomy');
     move(s,root.querySelector('.h3-viewbar'),options);move(s,root.querySelector('.h3-chamber-legend'),options);
-    const phases=disclosure(s,shell,'Choose a physiological phase and teaching stage');
+    const phases=disclosure(s,shell,'Choose a physiological phase');
     move(s,root.querySelector('.h3-phase-tools'),phases);move(s,root.querySelector('.h3-cycle-groups'),phases);
     for(const label of [...transport.querySelectorAll('label')])if(label.querySelector('[data-h3-speed],[data-h3-rotation]'))move(s,label,options);
     move(s,grid,shell,shell.firstChild);move(s,root.querySelector('[data-h3-scale-context]'),organ,organ.firstChild);
@@ -56,7 +56,7 @@
       const anatomyOptions=disclosure(s,first,'Anatomy display and loading options');
       const loading=root.querySelector('[data-load-breathing]')?.closest('.sim-controls');move(s,loading,anatomyOptions);move(s,root.querySelector('[data-load-status]'),anatomyOptions);
       // Keep mechanics outside the replaceable 3D host: unload/retry rebuilds it.
-      const mechanics=[...root.querySelectorAll('.sim-card')].find(e=>e.querySelector(':scope > h3')?.textContent==='Breathing mechanics');
+      const mechanics=[...root.querySelectorAll('.sim-card')].find(e=>e.querySelector(':scope > h3')?.textContent==='Breathing cycle');
       const host=root.querySelector('[data-organ-host]');move(s,mechanics,first,host.nextSibling);
       const fallback=root.querySelector('[data-fallback]'),fallbackDetails=disclosure(s,first,'2D diagram and airway explanation');fallbackDetails.dataset.mobileFallback='';fallbackDetails.open=true;move(s,fallback,fallbackDetails);
       const fallbackRoute=fallback.querySelector('[data-explorer-fallback]');if(fallbackRoute){const route=disclosure(s,fallback,'Airway route and learning checks');move(s,fallbackRoute,route);}
@@ -77,7 +77,7 @@
     if(!viewport)return;
     const v=session('breathing',viewport);if(!v)return;
     const options=disclosure(v,host,'Camera, anatomy and airway routes');
-    const camera=disclosure(v,options,'Camera, anatomy and layer options');
+    const camera=disclosure(v,options,'View and anatomy');
     for(const child of [...host.children])if(child.matches('.sim-controls,[data-breath-gross-orientation],.sim-badge'))move(v,child,camera);
     const route=disclosure(v,options,'Connected airway route and learning checks');move(v,host.querySelector('[data-explorer-host]'),route);
     move(v,host.querySelector('[data-breath-status]'),options);

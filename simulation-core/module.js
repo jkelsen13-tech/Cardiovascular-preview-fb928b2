@@ -259,7 +259,7 @@
     return `<div class="sim-controls"><button data-resp-view="whole">Whole organ</button><button data-resp-view="airway">Airway map</button><button data-resp-view="exchange">Magnified exchange</button></div><div data-resp-diagram></div>`;
   }
   function capnography() {
-    return `<section class="sim-card"><h3>Breathing and linked capnography</h3><span class="sim-badge">Synthetic waveform · rate follows breathing clock · EtCO₂ preset 40 mmHg, not model-derived</span><svg class="sim-diagram" viewBox="0 0 600 250" role="img" aria-label="Synthetic capnogram: inspiration, phase 1 dead space, phase 2 rise, phase 3 plateau, end-tidal point"><path d="M55 25V175H575" stroke="#9cafc9" fill="none"/><text x="5" y="25">CO₂ (mmHg)</text><text x="20" y="78">40</text><text x="25" y="175">0</text><text x="220" y="240">Time (seconds)</text>${[0, 1, 2, 3, 4, 5].map((n) => `<text data-cap-tick="${n}" x="${52 + n * 100}" y="195">${(n*mechanics.period/5).toFixed(1)}</text>`).join("")}<path d="M55 75L75 175H305L355 85L555 75" fill="none" stroke="#8fe5ef" stroke-width="4"/><circle data-cap-marker r="7" fill="#ffe19a"/><text x="95" y="120">Inspiration</text><text x="260" y="150">1</text><text x="320" y="120">2</text><text x="430" y="65">3</text><text x="480" y="35">EtCO₂</text>${[
+    return `<section class="sim-card"><h3>Breathing and linked capnography</h3><span class="sim-badge">Synthetic waveform · rate follows breathing clock · EtCO₂ preset 40 mmHg, not model-derived</span><svg class="sim-diagram course-capnogram" viewBox="0 0 600 250" role="img" aria-label="Synthetic capnogram: inspiration, phase 1 dead space, phase 2 rise, phase 3 plateau, end-tidal point"><path d="M55 25V175H575" stroke="#9cafc9" fill="none"/><text x="5" y="25">CO₂ (mmHg)</text><text x="20" y="78">40</text><text x="25" y="175">0</text><text x="220" y="240">Time (seconds)</text>${[0, 1, 2, 3, 4, 5].map((n) => `<text data-cap-tick="${n}" x="${52 + n * 100}" y="195">${(n*mechanics.period/5).toFixed(1)}</text>`).join("")}<path d="M55 75L75 175H305L355 85L555 75" fill="none" stroke="#8fe5ef" stroke-width="4"/><circle data-cap-marker r="7" fill="#ffe19a"/><text x="95" y="120">Inspiration</text><text x="260" y="150">1</text><text x="320" y="120">2</text><text x="430" y="65">3</text><text x="480" y="35">EtCO₂</text>${[
       [0, 55, 250],
       [1, 255, 50],
       [2, 305, 50],
@@ -275,28 +275,12 @@
       )}</svg><div class="sim-controls">${C.respiratoryPhases.map((p, i) => `<button data-resp-phase="${i}">${p.name}</button>`).join("")}</div><div data-resp-clock class="sim-status" role="status"></div><p>Sampling site: proximal airway / mouth. The source highlighted below and waveform marker share this breath clock. The inspiratory downstroke clears the final expired sample; early expired dead-space gas and inspired gas can both be low in CO₂.</p>${sourceLink("capno")}<div class="sim-controls"><label><input data-cue="air" type="checkbox" checked>Air movement cue</label><label><input data-cue="blood" type="checkbox" checked>Perfusion cue</label><label><input data-cue="diffusion" type="checkbox" checked>Diffusion cues</label></div><p>These independent display toggles hide instructional cues. They do not imply a physiological stop. Diffusion can continue during both inspiration and expiration.</p><label>Mechanics scenario <select data-ventilation><option value="spontaneous" ${state.ventilation === "spontaneous" ? "selected" : ""}>Quiet spontaneous breathing</option><option value="positive" ${state.ventilation === "positive" ? "selected" : ""}>Positive-pressure inspiration comparison</option></select></label></section>`;
   }
   function breathingControls() {
-    const p=state.breathing;
-    return `<section class="sim-card"><h3>Breathing mechanics</h3>${playback(mechanics.period)}<p>One physiological clock drives the moving anatomy, flow and curves. Volume is change above an idealized relaxed reference, not total lung volume. Quiet expiration does not empty the lungs.</p><div class="sim-controls"><label>Rate (breaths/min)<input data-mechanics="rate" type="number" min="6" max="30" step="1" value="${p.rate}"></label><label>Depth target (L)<input data-mechanics="target" type="number" min="0.2" max="1" step="0.1" value="${p.target}"></label></div><details><summary>Mechanics laboratory: resistance, compliance and drive</summary><p>Linear single-compartment model. R × C is the time constant in seconds. These parameters are teaching experiments, not diagnoses or ventilator prescriptions.</p><label>Experiment <select data-mechanics="mode"><option value="target" ${p.mode==='target'?'selected':''}>Target tidal excursion: calculate required drive</option><option value="effort" ${p.mode==='effort'?'selected':''}>Fixed effort: depth sets drive, R/C change delivery</option></select></label><label>Resistance (cmH₂O·s/L)<input data-mechanics="resistance" type="number" min="1" max="20" step="1" value="${p.resistance}"></label><label>Lung compliance (L/cmH₂O)<input data-mechanics="compliance" type="number" min="0.04" max="0.2" step="0.01" value="${p.compliance}"></label><p>Drive is an idealized constant inspiratory effort, released at expiration. Its step changes are not measured muscle kinetics; volume remains continuous and flow follows the pressure gradient. Periodic steady state is recomputed after changes, including backward scrubbing.</p></details><div data-mechanics-values role="status"></div><div data-mechanics-curves>${mechanicsCurves()}</div><p>All pressures use ambient = 0 cmH₂O. Airway opening Pao; alveolar Palv; pleural Ppl. Transpulmonary = Palv − Ppl. Trans-respiratory = Pao − body-surface pressure (body surface = 0). Baseline Ppl −5 cmH₂O is illustrative. Target mode adjusts drive; fixed effort never recalibrates it when R or C changes.</p><p><a href="https://www.imagwiki.nibib.nih.gov/physiome/jsim/models/webmodel/NSR/tidalhuman" target="_blank" rel="noopener">NSR Tidal_Human equation reference</a> · ${sourceLink('breathing')}</p></section>`;
+    return `<section class="sim-card" data-course-breathing><h3>Breathing cycle</h3>${playback(mechanics.period)}<p>Follow inspiration and expiration. The diaphragm and chest change thoracic volume; air moves down a pressure gradient. Quiet expiration does not empty the lungs.</p><p data-mechanics-values role="status"></p><div data-mechanics-curves></div><p>${sourceLink('breathing')}</p></section>`;
   }
-  function mechanicsCurves() {
-    const samples=Array.from({length:121},(_,i)=>mechanics.at(i*mechanics.period/120));
-    const rows=[['Volume above reference (L)','volume',0,Math.max(.6,mechanics.maximum*1.1)],['Flow (L/s), + inward','flow',-3,3],['Pressure (cmH₂O): alveolar','alveolar',-12,12],['Pressure (cmH₂O): pleural','pleural',-30,0]];
-    return rows.map(([name,key,min,max],row)=>{min=Math.min(0,...samples.map(s=>s[key]));max=Math.max(0,...samples.map(s=>s[key]));const pad=Math.max(.02,(max-min)*.08);min-=pad;max+=pad;if(matchMedia('(max-width:850px)').matches){
-      // Match the plotting coordinate width to a phone, keeping SVG text readable.
-      // Samples and physical ranges are shared with the unchanged desktop plot.
-      const width=Math.max(240,Math.min(600,innerWidth-72)),left=54,right=width-12,top=20,bottom=125;
-      const path=samples.map((s,i)=>`${i?'L':'M'}${left+i*(right-left)/(samples.length-1)} ${bottom-(Math.min(max,Math.max(min,s[key]))-min)/(max-min)*(bottom-top)}`).join(' ');
-      return `<figure class="sim-mechanics-figure"><figcaption>${name}</figcaption><svg class="sim-mechanics-curve" viewBox="0 0 ${width} 145" role="img" aria-label="${name}, synchronized over one breath" data-plot-left="${left}" data-plot-right="${right}" data-plot-top="${top}" data-plot-bottom="${bottom}"><text x="4" y="30">${max.toFixed(1)}</text><text x="4" y="125">${min.toFixed(1)}</text><path d="M${left} ${top}V${bottom}H${right}" stroke="#8099b1" fill="none"/><path d="${path}" stroke="${['#88dfe4','#ffe1a4','#db9dcc','#b8c9ff'][row]}" stroke-width="2.5" fill="none"/><path data-mechanics-marker d="M${left} ${top}V${bottom}" stroke="#fff" stroke-width="2"/></svg></figure>`;
-    }return `<svg class="sim-mechanics-curve" viewBox="0 0 600 110" role="img" aria-label="${name}, synchronized over one breath"><text x="8" y="20">${name}</text><text x="8" y="45">${max.toFixed(1)}</text><text x="8" y="95">${min.toFixed(1)}</text><path d="M60 30V95H585" stroke="#8099b1" fill="none"/><path d="${samples.map((s,i)=>`${i?'L':'M'}${60+i*4.3} ${95-(Math.min(max,Math.max(min,s[key]))-min)/(max-min)*60}`).join(' ')}" stroke="${['#88dfe4','#ffe1a4','#db9dcc','#b8c9ff'][row]}" stroke-width="2.5" fill="none"/><path data-mechanics-marker d="M60 30V95" stroke="#fff" stroke-width="2"/></svg>`;}).join('')+'<p>Horizontal axis: one breath, 0 to '+mechanics.period.toFixed(2)+' physiological seconds. Curve limits are graphical only; exact values are above.</p>';
-  }
-  function updateMechanics(s) {
-    const el=root.querySelector('[data-mechanics-values]');if(!el)return;
-    el.textContent=`${s.phase} · ${state.time.toFixed(2)} / ${s.period.toFixed(2)} s · volume above reference ${s.volume.toFixed(3)} L · delivered excursion ${s.delivered.toFixed(3)} L · flow ${s.flow.toFixed(3)} L/s · Pao ${s.airway.toFixed(2)}, Palv ${s.alveolar.toFixed(2)}, Ppl ${s.pleural.toFixed(2)}, transpulmonary ${s.transpulmonary.toFixed(2)}, trans-respiratory ${s.transrespiratory.toFixed(2)} cmH₂O · required/held drive amplitude ${s.amplitude.toFixed(2)} cmH₂O · R×C ${(state.breathing.resistance*state.breathing.compliance).toFixed(2)} s.`;
-    root.querySelectorAll('[data-mechanics-marker]').forEach(m=>{
-      const plot=m.ownerSVGElement.dataset;
-      m.setAttribute('d',plot.plotLeft?`M${+plot.plotLeft+(plot.plotRight-plot.plotLeft)*state.time/s.period} ${plot.plotTop}V${plot.plotBottom}`:`M${60+516*state.time/s.period} 30V95`);
-    });
-  }
+  // The full mechanics model still drives every anatomy/exchange simulation.
+  // Its tuning inputs and four numerical curves are not student controls.
+  function mechanicsCurves(){return '';}
+  function updateMechanics(s){const el=root.querySelector('[data-mechanics-values]');if(el)el.textContent=s.phase+' · '+state.time.toFixed(2)+' / '+s.period.toFixed(2)+' s';}
   function ventilationLab() {
     return `<section class="sim-card"><h3>Idealized ventilation arithmetic</h3><form data-ventilation-form><div class="sim-controls"><label>RR (/min) <input name="rr" type="number" value="12" step="any" required></label><label>VT (mL) <input name="vt" type="number" value="500" step="any" required></label><label>Assumed VD (mL) <input name="vd" type="number" value="150" step="any" required></label><button>Calculate ventilation</button></div></form><p data-ventilation-result role="status">12 × 500 / 1000 = 6.0 L/min total; 12 × (500 − 150) / 1000 = 4.2 L/min estimated alveolar ventilation.</p><p>VD is assumed, not universal. These values do not predict PaCO₂ or SpO₂.</p>${sourceLink("breathing")}</section>`;
   }
@@ -1032,18 +1016,6 @@
     };
     return view?.batchDraw?view.batchDraw(finish):finish();
   }
-  // Redraw only chart presentation at the breakpoint; leave the physiological
-  // clock, mounted anatomy, camera and current play/pause state untouched.
-  const mechanicsMobile=matchMedia('(max-width:850px)');let mechanicsChartFrame=0;
-  function resizeMechanicsCharts(){
-    if(mechanicsChartFrame)return;
-    mechanicsChartFrame=requestAnimationFrame(()=>{
-      mechanicsChartFrame=0;const curves=root.querySelector('[data-mechanics-curves]');
-      if(curves){curves.innerHTML=mechanicsCurves();updateMechanics(mechanics.at(state.time));}
-    });
-  }
-  mechanicsMobile.addEventListener('change',resizeMechanicsCharts);
-  window.addEventListener('resize',()=>{if(mechanicsMobile.matches)resizeMechanicsCharts();});
   window.CardiorespiratoryStudy = {
     guided:{prepare:guidedRespPrepare,apply:guidedRespApply,capture:guidedRespCapture,restore:guidedRespRestore,pause:stop,suspendForExplanation:guidedRespSuspendForExplanation,releaseGuidedResources},
     open,

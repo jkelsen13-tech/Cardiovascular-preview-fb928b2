@@ -52,3 +52,9 @@
     #heartV3Study.ml-heart .h3-stage{height:300px}
   }
 }
+
+/* Only duplicate core transport is conditional on native fullscreen; technical
+   tuners and mechanics plots are removed from their source templates. */
+.sim-breath-viewport:not(:fullscreen) .sim-breath-transport{display:none}
+.course-capnogram text{font-size:24px}
+.h3-course-view select{max-width:100%}
