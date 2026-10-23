@@ -9,6 +9,14 @@
   const card=doc.createElement('section');card.id='contextualAudio';card.hidden=true;
   card.setAttribute('aria-labelledby','contextualAudioTitle');
   card.innerHTML='<h2 id="contextualAudioTitle">Audio explanation</h2><p class="ca-context" data-context-audio-context></p><p class="ca-note">Listen while you use the page. You control the view and the simulation.</p><label>Related explanation<select data-context-audio-lesson aria-label="Related audio explanation"></select></label><p class="ca-note" data-context-audio-continuing hidden></p><div class="ca-controls"><button type="button" data-context-audio-action="play">Play explanation</button><button type="button" data-context-audio-action="replay">Replay</button></div><div class="ca-position"><label for="contextAudioSeek">Audio position</label><input id="contextAudioSeek" data-context-audio-seek type="range" min="0" max="0" step="0.1" value="0"><output data-context-audio-position>0:00 / 0:00</output></div><p class="ca-note" role="status" aria-live="polite" data-context-audio-status></p><p class="ca-note ca-warning" data-context-audio-warning hidden></p><p role="alert" data-context-audio-error hidden></p><details><summary>Transcript and source</summary><p class="ca-note" data-context-audio-source></p><div class="ca-transcript" data-context-audio-transcript></div></details>';
+  // The media element remains outside this disclosure, in its original parent.
+  // Expanding the mobile controls or crossing a breakpoint never moves audio.
+  const inlineMedia=host.matchMedia('(max-width:850px)'),inline=doc.createElement('details');
+  inline.className='ca-inline-disclosure';inline.open=!inlineMedia.matches;
+  const inlineSummary=doc.createElement('summary');inlineSummary.textContent='Audio explanation · controls and transcript';
+  const inlineBody=doc.createElement('div');inlineBody.className='ca-inline-body';
+  while(card.firstChild)inlineBody.append(card.firstChild);
+  inline.append(inlineSummary,inlineBody);card.append(inline);
   const audio=doc.createElement('audio');audio.preload='metadata';audio.hidden=true;audio.setAttribute('aria-label','Contextual explanation audio');card.append(audio);
   home.insertBefore(card,home.firstChild);
   const el=name=>card.querySelector('[data-context-audio-'+name+']');
@@ -21,6 +29,7 @@
   let context=null,current=null,ids=[],revision=0,pending=false,loading=false,error='',scheduled=false,disposed=false,manualPhase=null,priorHeartSelection='',clipUrl=null,controller=null;
   const listeners=[],observers=[],sectionObservers=new Map();
   const listen=(target,event,handler,options)=>{target.addEventListener(event,handler,options);listeners.push(()=>target.removeEventListener(event,handler,options));};
+  listen(inlineMedia,'change',()=>{inline.open=!inlineMedia.matches||inline.contains(doc.activeElement);});
   const text=(element,value)=>{if(element.textContent!==value)element.textContent=value;};
   const clock=value=>{const t=Math.max(0,Number(value)||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');};
   function visible(id){let e=doc.getElementById(id);if(!e)return false;for(;e;e=e.parentElement)if(e.hidden||e.classList.contains('hidden'))return false;return true;}

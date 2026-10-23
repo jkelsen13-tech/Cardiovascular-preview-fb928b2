@@ -94,6 +94,8 @@ try:
   exit_box=page.locator('[data-h3-action=fullscreen]').bounding_box();dock_box=floating.bounding_box()
   check(dock_box['y']+dock_box['height']<=exit_box['y'] or dock_box['x']>=exit_box['x']+exit_box['width'] or dock_box['x']+dock_box['width']<=exit_box['x'],'Floating control clears native expanded-view exit')
   page.locator('[data-h3-action=fullscreen]').click();page.wait_for_function('()=>!document.fullscreenElement&&!document.querySelector(".h3-expanded")')
+  # fullscreenchange can follow the fullscreenElement property update.
+  page.wait_for_function('()=>document.getElementById("contextualAudioDock").parentElement===document.body')
   check(page.locator('#contextualAudioDock').evaluate('el=>el.parentElement===document.body'),'Dock returns from native fullscreen without moving audio element')
   for width,height in [(320,640),(390,844),(768,1024),(1024,768),(568,320)]:
    page.set_viewport_size({'width':width,'height':height});page.evaluate('()=>window.scrollTo(0,document.body.scrollHeight)')

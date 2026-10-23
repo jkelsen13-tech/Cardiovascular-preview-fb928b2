@@ -281,12 +281,21 @@
   function mechanicsCurves() {
     const samples=Array.from({length:121},(_,i)=>mechanics.at(i*mechanics.period/120));
     const rows=[['Volume above reference (L)','volume',0,Math.max(.6,mechanics.maximum*1.1)],['Flow (L/s), + inward','flow',-3,3],['Pressure (cmH₂O): alveolar','alveolar',-12,12],['Pressure (cmH₂O): pleural','pleural',-30,0]];
-    return rows.map(([name,key,min,max],row)=>{min=Math.min(0,...samples.map(s=>s[key]));max=Math.max(0,...samples.map(s=>s[key]));const pad=Math.max(.02,(max-min)*.08);min-=pad;max+=pad;return `<svg class="sim-mechanics-curve" viewBox="0 0 600 110" role="img" aria-label="${name}, synchronized over one breath"><text x="8" y="20">${name}</text><text x="8" y="45">${max.toFixed(1)}</text><text x="8" y="95">${min.toFixed(1)}</text><path d="M60 30V95H585" stroke="#8099b1" fill="none"/><path d="${samples.map((s,i)=>`${i?'L':'M'}${60+i*4.3} ${95-(Math.min(max,Math.max(min,s[key]))-min)/(max-min)*60}`).join(' ')}" stroke="${['#88dfe4','#ffe1a4','#db9dcc','#b8c9ff'][row]}" stroke-width="2.5" fill="none"/><path data-mechanics-marker d="M60 30V95" stroke="#fff" stroke-width="2"/></svg>`;}).join('')+'<p>Horizontal axis: one breath, 0 to '+mechanics.period.toFixed(2)+' physiological seconds. Curve limits are graphical only; exact values are above.</p>';
+    return rows.map(([name,key,min,max],row)=>{min=Math.min(0,...samples.map(s=>s[key]));max=Math.max(0,...samples.map(s=>s[key]));const pad=Math.max(.02,(max-min)*.08);min-=pad;max+=pad;if(matchMedia('(max-width:850px)').matches){
+      // Match the plotting coordinate width to a phone, keeping SVG text readable.
+      // Samples and physical ranges are shared with the unchanged desktop plot.
+      const width=Math.max(240,Math.min(600,innerWidth-72)),left=54,right=width-12,top=20,bottom=125;
+      const path=samples.map((s,i)=>`${i?'L':'M'}${left+i*(right-left)/(samples.length-1)} ${bottom-(Math.min(max,Math.max(min,s[key]))-min)/(max-min)*(bottom-top)}`).join(' ');
+      return `<figure class="sim-mechanics-figure"><figcaption>${name}</figcaption><svg class="sim-mechanics-curve" viewBox="0 0 ${width} 145" role="img" aria-label="${name}, synchronized over one breath" data-plot-left="${left}" data-plot-right="${right}" data-plot-top="${top}" data-plot-bottom="${bottom}"><text x="4" y="30">${max.toFixed(1)}</text><text x="4" y="125">${min.toFixed(1)}</text><path d="M${left} ${top}V${bottom}H${right}" stroke="#8099b1" fill="none"/><path d="${path}" stroke="${['#88dfe4','#ffe1a4','#db9dcc','#b8c9ff'][row]}" stroke-width="2.5" fill="none"/><path data-mechanics-marker d="M${left} ${top}V${bottom}" stroke="#fff" stroke-width="2"/></svg></figure>`;
+    }return `<svg class="sim-mechanics-curve" viewBox="0 0 600 110" role="img" aria-label="${name}, synchronized over one breath"><text x="8" y="20">${name}</text><text x="8" y="45">${max.toFixed(1)}</text><text x="8" y="95">${min.toFixed(1)}</text><path d="M60 30V95H585" stroke="#8099b1" fill="none"/><path d="${samples.map((s,i)=>`${i?'L':'M'}${60+i*4.3} ${95-(Math.min(max,Math.max(min,s[key]))-min)/(max-min)*60}`).join(' ')}" stroke="${['#88dfe4','#ffe1a4','#db9dcc','#b8c9ff'][row]}" stroke-width="2.5" fill="none"/><path data-mechanics-marker d="M60 30V95" stroke="#fff" stroke-width="2"/></svg>`;}).join('')+'<p>Horizontal axis: one breath, 0 to '+mechanics.period.toFixed(2)+' physiological seconds. Curve limits are graphical only; exact values are above.</p>';
   }
   function updateMechanics(s) {
     const el=root.querySelector('[data-mechanics-values]');if(!el)return;
     el.textContent=`${s.phase} · ${state.time.toFixed(2)} / ${s.period.toFixed(2)} s · volume above reference ${s.volume.toFixed(3)} L · delivered excursion ${s.delivered.toFixed(3)} L · flow ${s.flow.toFixed(3)} L/s · Pao ${s.airway.toFixed(2)}, Palv ${s.alveolar.toFixed(2)}, Ppl ${s.pleural.toFixed(2)}, transpulmonary ${s.transpulmonary.toFixed(2)}, trans-respiratory ${s.transrespiratory.toFixed(2)} cmH₂O · required/held drive amplitude ${s.amplitude.toFixed(2)} cmH₂O · R×C ${(state.breathing.resistance*state.breathing.compliance).toFixed(2)} s.`;
-    root.querySelectorAll('[data-mechanics-marker]').forEach(m=>m.setAttribute('d',`M${60+516*state.time/s.period} 30V95`));
+    root.querySelectorAll('[data-mechanics-marker]').forEach(m=>{
+      const plot=m.ownerSVGElement.dataset;
+      m.setAttribute('d',plot.plotLeft?`M${+plot.plotLeft+(plot.plotRight-plot.plotLeft)*state.time/s.period} ${plot.plotTop}V${plot.plotBottom}`:`M${60+516*state.time/s.period} 30V95`);
+    });
   }
   function ventilationLab() {
     return `<section class="sim-card"><h3>Idealized ventilation arithmetic</h3><form data-ventilation-form><div class="sim-controls"><label>RR (/min) <input name="rr" type="number" value="12" step="any" required></label><label>VT (mL) <input name="vt" type="number" value="500" step="any" required></label><label>Assumed VD (mL) <input name="vd" type="number" value="150" step="any" required></label><button>Calculate ventilation</button></div></form><p data-ventilation-result role="status">12 × 500 / 1000 = 6.0 L/min total; 12 × (500 − 150) / 1000 = 4.2 L/min estimated alveolar ventilation.</p><p>VD is assumed, not universal. These values do not predict PaCO₂ or SpO₂.</p>${sourceLink("breathing")}</section>`;
@@ -1023,6 +1032,18 @@
     };
     return view?.batchDraw?view.batchDraw(finish):finish();
   }
+  // Redraw only chart presentation at the breakpoint; leave the physiological
+  // clock, mounted anatomy, camera and current play/pause state untouched.
+  const mechanicsMobile=matchMedia('(max-width:850px)');let mechanicsChartFrame=0;
+  function resizeMechanicsCharts(){
+    if(mechanicsChartFrame)return;
+    mechanicsChartFrame=requestAnimationFrame(()=>{
+      mechanicsChartFrame=0;const curves=root.querySelector('[data-mechanics-curves]');
+      if(curves){curves.innerHTML=mechanicsCurves();updateMechanics(mechanics.at(state.time));}
+    });
+  }
+  mechanicsMobile.addEventListener('change',resizeMechanicsCharts);
+  window.addEventListener('resize',()=>{if(mechanicsMobile.matches)resizeMechanicsCharts();});
   window.CardiorespiratoryStudy = {
     guided:{prepare:guidedRespPrepare,apply:guidedRespApply,capture:guidedRespCapture,restore:guidedRespRestore,pause:stop,suspendForExplanation:guidedRespSuspendForExplanation,releaseGuidedResources},
     open,

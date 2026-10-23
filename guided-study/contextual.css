@@ -54,3 +54,13 @@
 body.contextual-audio-present::after{content:"";display:block;height:calc(88px + env(safe-area-inset-bottom,0px));pointer-events:none}
 /* Keep the native enlarged-view exit button reachable at the lower corner. */
 #contextualAudioDock.ca-in-fullscreen,body:has(.h3-expanded) #contextualAudioDock{--ca-dock-bottom:76px}
+/* Keep the existing full player on larger screens. The mobile disclosure never
+   contains the audio element, so opening it does not interrupt playback. */
+#contextualAudio>.ca-inline-disclosure{border:0;padding:0;margin:0;background:transparent}
+#contextualAudio>.ca-inline-disclosure>summary{display:none}
+#contextualAudio>.ca-inline-disclosure>summary:focus{display:list-item}
+@media(max-width:850px){
+  #contextualAudio{padding:8px 12px;margin:8px 0}
+  #contextualAudio>.ca-inline-disclosure>summary{display:list-item;cursor:pointer;min-height:44px;padding:10px 0;font-weight:650}
+  #contextualAudio .ca-inline-body{padding-top:6px}
+}
